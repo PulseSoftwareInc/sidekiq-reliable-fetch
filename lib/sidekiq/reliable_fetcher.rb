@@ -81,13 +81,17 @@ module Sidekiq
       Sidekiq.logger.warn("Failed to requeue #{inprogress.size} jobs: #{ex.message}")
     end
 
-    UnitOfWork = Struct.new(:queue, :message) do
+    UnitOfWork = Struct.new(:queue, :job) do
       def acknowledge
         # NOTE LREM is O(n), so depending on the type of jobs and their average
         # duration, another data structure might be more suited.
         # But as there should not be too much jobs in this queue in the same time,
         # it's probably ok.
         Sidekiq.redis { |conn| conn.lrem("#{queue}:#{WORKING_QUEUE}", 1, message) }
+      end
+
+      def message
+        job
       end
 
       def queue_name
